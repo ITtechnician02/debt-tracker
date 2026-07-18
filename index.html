@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Debt Tracker</title>
+
+<style>
+
+body{
+    font-family:Arial, sans-serif;
+    background:#f1f3f6;
+    padding:20px;
+}
+
+.container{
+    max-width:700px;
+    margin:auto;
+}
+
+h1{
+    text-align:center;
+}
+
+.card{
+    background:white;
+    padding:20px;
+    margin-bottom:20px;
+    border-radius:15px;
+    box-shadow:0 5px 15px #ddd;
+}
+
+
+input, select, button{
+
+    width:100%;
+    padding:12px;
+    margin:8px 0;
+    border-radius:8px;
+    border:1px solid #ccc;
+
+}
+
+
+button{
+
+    background:#3498db;
+    color:white;
+    border:none;
+    cursor:pointer;
+
+}
+
+
+button:hover{
+
+    background:#2980b9;
+
+}
+
+
+.delete{
+
+    background:#e74c3c;
+
+}
+
+
+.month{
+
+    padding:10px;
+    margin:5px 0;
+    background:#f5f5f5;
+    border-radius:8px;
+
+}
+
+
+.progress{
+
+    height:20px;
+    background:#ddd;
+    border-radius:20px;
+    overflow:hidden;
+
+}
+
+
+.bar{
+
+    height:100%;
+    background:#27ae60;
+    color:white;
+    text-align:center;
+    font-size:12px;
+
+}
+
+
+.done{
+
+    color:green;
+    font-weight:bold;
+
+}
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+<h1>💰 Debt Tracker</h1>
+
+
+
+<div class="card">
+
+
+<h2>Tambah Hutang</h2>
+
+
+<input id="name" placeholder="Nama hutang">
+
+
+<input id="amount" type="number" placeholder="Jumlah hutang RM">
+
+
+<input id="monthly" type="number" placeholder="Bayaran setiap bulan RM">
+
+<input id="startDate" type="date">
+
+
+<select id="duration">
+
+<option value="3">3 Bulan</option>
+
+<option value="6">6 Bulan</option>
+
+<option value="12">12 Bulan</option>
+
+<option value="18">18 Bulan</option>
+
+
+<option value="24">24 Bulan</option>
+
+</select>
+
+
+
+<button onclick="addDebt()">
+
+Tambah
+
+</button>
+
+
+</div>
+
+
+
+
+<div id="debtList"></div>
+
+
+
+
+</div>
+
+
+
+
+
+<script>
+
+
+let debts = JSON.parse(localStorage.getItem("debtData")) || [];
+
+
+
+function addDebt(){
+
+
+let name=document.getElementById("name").value;
+
+let amount=Number(document.getElementById("amount").value);
+
+let monthly=Number(document.getElementById("monthly").value);
+
+let duration=Number(document.getElementById("duration").value);
+
+let startDate=document.getElementById("startDate").value;
+
+if(name=="" || amount==0 || monthly==0){
+
+alert("Sila isi semua maklumat");
+
+return;
+
+}
+
+
+
+let payment=[];
+
+
+for(let i=1;i<=duration;i++){
+
+payment.push(false);
+
+}
+
+
+
+let data={
+
+name:name,
+
+amount:amount,
+
+monthly:monthly,
+
+duration:duration,
+
+startDate:startDate,
+
+payment:payment
+
+};
+
+
+
+debts.push(data);
+
+
+save();
+
+show();
+
+
+
+}
+
+
+
+
+
+function show(){
+
+
+let list=document.getElementById("debtList");
+
+list.innerHTML="";
+
+
+
+debts.forEach((d,index)=>{
+
+
+let paid=d.payment.filter(x=>x).length;
+
+
+let percent=Math.round(
+(paid/d.duration)*100
+);
+
+
+
+let html=`
+
+
+<div class="card">
+
+
+<h2>${d.name}</h2>
+
+
+<p>
+Jumlah:
+<b>RM ${d.amount.toFixed(2)}</b>
+</p>
+
+
+<p>
+Bayaran/Bulan:
+<b>RM ${d.monthly.toFixed(2)}</b>
+</p>
+
+
+<p>
+Tempoh:
+<b>${d.duration} Bulan</b>
+</p>
+
+
+
+<h3>Bayaran Bulanan</h3>
+
+
+`;
+
+
+
+d.payment.forEach((status,month)=>{
+
+
+let date = new Date(d.startDate);
+
+date.setMonth(date.getMonth()+month);
+
+
+let due = 
+String(date.getDate()).padStart(2,'0')
++
+"/"+
+String(date.getMonth()+1).padStart(2,'0')
++
+"/"+
+date.getFullYear();
+
+
+
+html += `
+
+
+<div class="month">
+
+<input type="checkbox"
+
+${status ? "checked" : ""}
+
+onclick="checkPayment(${index},${month})">
+
+
+Bulan ${month+1} - ${due}
+
+
+${status ? " ✅" : ""}
+
+
+</div>
+
+
+`;
+
+});
+
+
+html += `
+
+
+<p>
+Progress: ${paid}/${d.duration} Bulan
+</p>
+
+
+
+<div class="progress">
+
+<div class="bar" style="width:${percent}%">
+
+${percent}%
+
+</div>
+
+</div>
+
+
+
+<br>
+
+
+${percent==100 ?
+
+"<p class='done'>🎉 Hutang selesai</p>"
+
+:
+
+"<p>⏳ Masih berjalan</p>"
+
+}
+
+
+
+<button class="delete"
+
+onclick="deleteDebt(${index})">
+
+Padam
+
+</button>
+
+
+</div>
+
+
+`;
+
+
+
+list.innerHTML += html;
+
+
+});
+
+
+
+}
+
+
+
+
+
+
+
+function checkPayment(index,month){
+
+
+debts[index].payment[month]=
+
+!debts[index].payment[month];
+
+
+save();
+
+show();
+
+
+}
+
+
+
+
+
+
+function deleteDebt(index){
+
+
+debts.splice(index,1);
+
+
+save();
+
+show();
+
+
+}
+
+
+
+
+
+function save(){
+
+
+localStorage.setItem(
+
+"debtData",
+
+JSON.stringify(debts)
+
+);
+
+
+}
+
+
+
+show();
+
+
+
+</script>
+
+
+</body>
+</html>
